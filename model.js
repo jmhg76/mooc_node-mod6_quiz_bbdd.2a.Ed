@@ -10,11 +10,11 @@ sequelize.define(
   { question: { 
       type: Sequelize.STRING,
       unique: { msg: "La preguntas ya existe"},
-      validate: { noEmpty: {msg: "La pregunta no puede estar vacía"}}
+      validate: { notEmpty: {msg: "La pregunta no puede estar vacía"}}
     },
     answer: {
       type: Sequelize.STRING,
-      validate: { noEmpty: {msg: "La respuesta no puede estar vacía"}}
+      validate: { notEmpty: {msg: "La respuesta no puede estar vacía"}}
     }
   }
 );

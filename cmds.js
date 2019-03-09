@@ -1,8 +1,10 @@
 
+const Sequelize = require('sequelize'); // Importado para las promesas Sequelize.Promise
 
 const {log, biglog, errorlog, colorize} = require("./out");
 
 const {models} = require('./model'); // Importamos todos los modelos a utilizar
+
 
 /**
  * Esta función devuelve una promesa que:
@@ -12,22 +14,39 @@ const {models} = require('./model'); // Importamos todos los modelos a utilizar
  *
  * @param id Clave del quiz a mostrar.
  */
- const validateId = id => {
-	 return new Promise((resolve, reject) => {
-		 if (typeof id === "undefined") {
-			 reject(new Error(`Falta el parámetro <id>.`));
-		 } else {
-			 id = parseInt(id);
-			 if (Number.isNaN(id)) {
-				 reject(new Error(`El valor del parámetros <id> no es un número`));
-			 } else {
-				 resolve(id);
-			 }
-		 }
-	 });
- };
+const validateId = id => {
+	return new Sequelize.Promise((resolve, reject) => {
+		if (typeof id === "undefined") {
+			reject(new Error(`Falta el parámetro <id>.`));
+		} else {
+			id = parseInt(id);
+			if (Number.isNaN(id)) {
+				reject(new Error(`El valor del parámetros <id> no es un número`));
+			} else {
+				resolve(id);
+			}
+		}
+	});
+};
 
+/**
+ * Esta función devuelve una promesa que cuando se cumple ...
+ *   la llamada a then que hay que hacer es:
+ *      .then(answer => {...})
+ * @param rl Objeto readline usado para implementar el CLI.
+ * @param text pregunta que hay que hacerle al usuario
+ */
+const makeQuestion = (rl, text) => {
+	// Promesa tipo Sequelize para que en su uso se permita las promesas Sequelize
+	return new Sequelize.Promise((resolve, reject) => {
+		rl.question(colorize(text, 'red'), answer => {
+			resolve(answer.trim());
+		});
+	});
+};
 
+ 
+ 
 /**
  * Muestra la ayuda.
  *
@@ -105,15 +124,31 @@ exports.showCmd = (rl, id) => {
  */
 exports.addCmd = rl => {
 
-    rl.question(colorize(' Introduzca una pregunta: ', 'red'), question => {
-
-        rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
-
-            model.add(question, answer);
-            log(` ${colorize('Se ha añadido', 'magenta')}: ${question} ${colorize('=>', 'magenta')} ${answer}`);
-            rl.prompt();
-        });
-    });
+    makeQuestion(rl, ' Introduzca una pregunta: ') // Pedimos la pregunta ...
+	.then(q => { // ... tenemos la pregunta ...
+		return makeQuestion(rl, ' Introduzca la respuesta: ') // ... pedimos la respuesta ...
+		.then(a => { // ... tenemos la respuesta ...
+			return { question: q , answer: a }; // ... tenemos la fila a introducir en la BDD
+		});
+	})
+	.then(quizz => {
+		log(` ${colorize('Van a añadirse', 'magenta')}: ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
+		
+		return models.quizz.create(quizz); // ... llamamos a la funcion create del modelo para introducir la fila en la BDD
+	}) 
+	.then((quizz) => { // .. Informamos de que se creó la pregunta y su respuesta ...
+		log(` ${colorize('Se ha añadido', 'magenta')}: ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
+	})
+	.catch(Sequelize.ValidationError, error => { // ... errores de validación del modelo
+		errorlog(`El quizz es erróneo:`);
+		error.errors.forEach(({message}) => errorlog(message));
+	})
+	.catch(error => { // ... otros errores posibles
+		errorlog(error.message);
+	})
+	.then(() => {
+		rl.prompt();
+	});
 };
 
 
