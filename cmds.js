@@ -2,7 +2,30 @@
 
 const {log, biglog, errorlog, colorize} = require("./out");
 
-const model = require('./model');
+const {models} = require('./model'); // Importamos todos los modelos a utilizar
+
+/**
+ * Esta función devuelve una promesa que:
+ *   - Valida que se ha introducido un valor para el parámetro
+ *   - Convierte el parámetro en un número entero
+ * Si todo va bien, la promesa se satisface y devuelve el valor de id al usar
+ *
+ * @param id Clave del quiz a mostrar.
+ */
+ const validateId = id => {
+	 return new Promise((resolve, reject) => {
+		 if (typeof id === "undefined") {
+			 reject(new Error(`Falta el parámetro <id>.`));
+		 } else {
+			 id = parseInt(id);
+			 if (Number.isNaN(id)) {
+				 reject(new Error(`El valor del parámetros <id> no es un número`));
+			 } else {
+				 resolve(id);
+			 }
+		 }
+	 });
+ };
 
 
 /**
@@ -32,12 +55,17 @@ exports.helpCmd = rl => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.listCmd = rl => {
-    model.getAll().forEach((quiz, id) => {
-        log(` [${colorize(id, 'magenta')}]:  ${quiz.question}`);
-    });
-    rl.prompt();
+	models.quizz.findAll()
+		.each(quizz => { // equivale a .then (q => .then( quizzes => quizzes.forEach( q ) => ...
+			log(`  [${colorize(quizz.id, 'magenta')}]:  ${quizz.question}`);
+		})
+		.catch(err => {
+			errorlog(`   ${err}`)
+		})
+		.then(() => {
+			rl.prompt();
+		});
 };
-
 
 /**
  * Muestra el quiz indicado en el parámetro: la pregunta y la respuesta.
@@ -46,17 +74,21 @@ exports.listCmd = rl => {
  * @param id Clave del quiz a mostrar.
  */
 exports.showCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-    } else {
-        try {
-            const quiz = model.getByIndex(id);
-            log(` [${colorize(id, 'magenta')}]:  ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
-        } catch(error) {
-            errorlog(error.message);
-        }
-    }
-    rl.prompt();
+	validateId(id)
+		.then(id => models.quizz.findById(id))
+		.then(quizz => {
+			if (!quizz) {
+				throw new Error(`No existe un quizz asociado al id=${id}.`);
+			}
+			log(` [${colorize(id, 'magenta')}]:  ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
+
+		})
+		.catch(error => {
+			errorlog(error.message);
+		})
+		.then(() => {
+			rl.prompt();
+		});
 };
 
 
