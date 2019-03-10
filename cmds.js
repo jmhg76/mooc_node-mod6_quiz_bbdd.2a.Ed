@@ -224,8 +224,30 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    log('Probar el quiz indicado.', 'red');
-    rl.prompt();
+	validateId(id) // Validamos id
+	.then(id => models.quizz.findById(id)) // Buscamos pregunta por el id validado ...
+	.then(quizz => { 
+		if (!quizz) {
+			throw new Error(`No existe un quizz asociado al id=${id}.`); // ... por si no existiera el id del quizz ...
+		}
+		return makeQuestion(rl, colorize(quizz.question + '? ', 'red')) // ... mostramos la pregunta y solicitamos una respuesta ...
+		.then ( a => { // ... tenemos una respuesta ...
+			// ... comprobamos si es correcta ...
+			if (quizz.answer.toLowerCase() === a.trim().toLowerCase()) { // ... mostramos los mensajes que correspondan si es correcta ...
+				log('Su respuesta es correcta.');
+				biglog('Correcta', 'green');
+			} else { // ... o no es correcta ...
+				log('Su respuesta es incorrecta.');
+				biglog('Incorrecta', 'red');
+			}
+		});
+	})
+	.catch(error => { // ... otros errores posibles ...
+		errorlog(error.message);
+	})
+	.then(() => { // ... y mostramos el prompt.
+		rl.prompt();
+	});
 };
 
 
@@ -247,9 +269,8 @@ exports.playCmd = rl => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.creditsCmd = rl => {
-    log('Autores de la práctica:');
-    log('Nombre 1', 'green');
-    log('Nombre 2', 'green');
+    log('Autor de la práctica:');
+    log('Juan Manuel Hernández Guillén', 'green');
     rl.prompt();
 };
 
