@@ -141,10 +141,10 @@ exports.addCmd = rl => {
 		errorlog(`El quizz es erróneo:`);
 		error.errors.forEach(({message}) => errorlog(message));
 	})
-	.catch(error => { // ... otros errores posibles
+	.catch(error => { // ... otros errores posibles ...
 		errorlog(error.message);
 	})
-	.then(() => {
+	.then(() => { // ... y mostramos el prompt.
 		rl.prompt();
 	});
 };
@@ -180,30 +180,40 @@ exports.deleteCmd = (rl, id) => {
  * @param id Clave del quiz a editar en el modelo.
  */
 exports.editCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-        rl.prompt();
-    } else {
-        try {
-            const quiz = model.getByIndex(id);
-
-            process.stdout.isTTY && setTimeout(() => {rl.write(quiz.question)},0);
-
-            rl.question(colorize(' Introduzca una pregunta: ', 'red'), question => {
-
-                process.stdout.isTTY && setTimeout(() => {rl.write(quiz.answer)},0);
-
-                rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
-                    model.update(id, question, answer);
-                    log(` Se ha cambiado el quiz ${colorize(id, 'magenta')} por: ${question} ${colorize('=>', 'magenta')} ${answer}`);
-                    rl.prompt();
-                });
-            });
-        } catch (error) {
-            errorlog(error.message);
-            rl.prompt();
-        }
-    }
+	validateId(id) // Validamos id
+	.then(id => models.quizz.findById(id)) // Buscamos pregunta por el id validado ...
+	.then(quizz => {
+		if (!quizz) {
+			throw new Error(`No existe un quizz asociado al id=${id}.`); // ... por si no existiera el id del quizz ...
+		}
+		process.stdout.isTTY && setTimeout(() => {rl.write(quizz.question)},0); // ... mostramos inmediatamente el texto actual de la pregunta por si quieremos editarlo
+		return makeQuestion(rl, ' Introduzca la pregunta: ') // ... pedimos la pregunta ...
+		.then( q => {  // ... tenemos la pregunta ...
+			process.stdout.isTTY && setTimeout(() => {rl.write(quizz.answer)},0); // ... mostramos inmediatamente el texto actual de la respuesta por si quieremos editarlo
+			return makeQuestion(rl, ' Introduzca la respuesta: ') // ... pedimos la respuesta ...
+			.then( a => { // ... tenemos la respuesta ...
+				quizz.question = q; // ... modificamos la pregunta editada ...
+				quizz.answer = a;   // ... modificamos la respuesta editada ...
+				return quizz; // ... devolvemos el objeto quizz ...
+			}); // fin del return de respuesta
+		}); // fin del return de pregunta
+	})
+	.then (quizz => { // ... tenemos el objeto quizz ya modificado ...
+		return quizz.save(); // ... guardamos en la BDD el objeto quizz modificado ...
+	})
+	.then (quizz => { // ... informamos de los cambios realizados ...
+		log(` Se ha cambiado el quiz ${colorize(quizz.id, 'magenta')} por: ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
+	})
+	.catch(Sequelize.ValidationError, error => { // ... errores de validación del modelo ...
+		errorlog(`El quizz es erróneo:`);
+		error.errors.forEach(({message}) => errorlog(message));
+	})
+	.catch(error => { // ... otros errores posibles ...
+		errorlog(error.message);
+	})
+	.then(() => { // ... y mostramos el prompt.
+		rl.prompt();
+	});	
 };
 
 
