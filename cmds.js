@@ -75,15 +75,15 @@ exports.helpCmd = rl => {
  */
 exports.listCmd = rl => {
 	models.quizz.findAll()
-		.each(quizz => { // equivale a .then (q => .then( quizzes => quizzes.forEach( q ) => ...
-			log(`  [${colorize(quizz.id, 'magenta')}]:  ${quizz.question}`);
-		})
-		.catch(err => {
-			errorlog(`   ${err}`)
-		})
-		.then(() => {
-			rl.prompt();
-		});
+	.each(quizz => { // equivale a .then (q => .then( quizzes => quizzes.forEach( q ) => ...
+		log(`  [${colorize(quizz.id, 'magenta')}]:  ${quizz.question}`);
+	})
+	.catch(err => {
+		errorlog(`   ${err}`)
+	})
+	.then(() => {
+		rl.prompt();
+	});
 };
 
 /**
@@ -94,20 +94,20 @@ exports.listCmd = rl => {
  */
 exports.showCmd = (rl, id) => {
 	validateId(id)
-		.then(id => models.quizz.findById(id))
-		.then(quizz => {
-			if (!quizz) {
-				throw new Error(`No existe un quizz asociado al id=${id}.`);
-			}
-			log(` [${colorize(id, 'magenta')}]:  ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
+	.then(id => models.quizz.findById(id))
+	.then(quizz => {
+		if (!quizz) {
+			throw new Error(`No existe un quizz asociado al id=${id}.`);
+		}
+		log(` [${colorize(id, 'magenta')}]:  ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
 
-		})
-		.catch(error => {
-			errorlog(error.message);
-		})
-		.then(() => {
-			rl.prompt();
-		});
+	})
+	.catch(error => {
+		errorlog(error.message);
+	})
+	.then(() => {
+		rl.prompt();
+	});
 };
 
 
@@ -132,8 +132,6 @@ exports.addCmd = rl => {
 		});
 	})
 	.then(quizz => {
-		log(` ${colorize('Van a añadirse', 'magenta')}: ${quizz.question} ${colorize('=>', 'magenta')} ${quizz.answer}`);
-		
 		return models.quizz.create(quizz); // ... llamamos a la funcion create del modelo para introducir la fila en la BDD
 	}) 
 	.then((quizz) => { // .. Informamos de que se creó la pregunta y su respuesta ...
@@ -159,16 +157,14 @@ exports.addCmd = rl => {
  * @param id Clave del quiz a borrar en el modelo.
  */
 exports.deleteCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-    } else {
-        try {
-            model.deleteByIndex(id);
-        } catch(error) {
-            errorlog(error.message);
-        }
-    }
-    rl.prompt();
+	validateId(id)
+	.then(id => models.quizz.destroy({ where: { id } }))
+	.catch(error => {
+		errorlog(error.message);
+	})
+	.then(() => {
+		rl.prompt();
+	});
 };
 
 
