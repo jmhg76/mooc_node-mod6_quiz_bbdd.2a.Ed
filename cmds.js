@@ -240,7 +240,7 @@ exports.testCmd = (rl, id) => {
 				log('Su respuesta es incorrecta.');
 				biglog('Incorrecta', 'red');
 			}
-		});
+		}); // ... fin del return ...
 	})
 	.catch(error => { // ... otros errores posibles ...
 		errorlog(error.message);
@@ -258,8 +258,56 @@ exports.testCmd = (rl, id) => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.playCmd = rl => {
-    log('Jugar.', 'red');
-    rl.prompt();
+	//
+	// Inicializamos Playground
+	//
+	// Barajar array ...
+	function shuffle(a) {
+		for (let i = a.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[a[i], a[j]] = [a[j], a[i]];
+		}
+		return a;
+	}
+		
+	// Definición de función principal del juego - Ojo a como está hecho.
+	const playLoop = (rl, quizzes, aciertos) => {
+
+		if (!quizzes.length) { // ... caso base de la recursión, no hay más preguntas en el array ...
+			log(`No hay nada más que preguntar.`);  // ... informamos del final del juego y el resultado final.
+			log(`Fin del juego. Aciertos: ${aciertos}`);
+			biglog(aciertos, 'magenta');
+			rl.prompt(); // ... y mostramos el prompt.
+		} else {
+			let quizz = quizzes.shift(); // Extraemos la pregunta y la quitamos del array ...
+			return makeQuestion(rl, colorize(quizz.question + '? ', 'red')) // ... mostramos la pregunta y solicitamos una respuesta ...
+			.then ( answer => { // ... tenemos una respuesta ...
+				// ... comprobamos si es correcta ...
+				if  (answer.toLowerCase() === quizz.answer.toLowerCase()) { // ... comprobamos si la respuesta es correcta o no ...
+					++aciertos; // Contabilizamos el acierto ...
+					log(`CORRECTO - Lleva ${aciertos} aciertos.`); // ... informamos del estado actual del juego ...
+					playLoop(rl, quizzes, aciertos); // ... reiteramos el juego con un acierto más y una pregunta menos ...
+				} else {
+					log(`INCORRECTO`); // Informamos del error ...
+					log(`Fin del juego. Aciertos: ${aciertos}`); // ... informamos del final del juego y el estado actual ...
+					biglog(aciertos, 'magenta');
+					rl.prompt(); // ... y mostramos el prompt.
+				}
+			});	// ... fin del return		
+		}
+	}
+
+	models.quizz.findAll() // Consultamos todas las preguntas de la BDD ...
+	.then ( (quizzes) => { // ... obtenemos todas las preguntas de la BDD ...
+		shuffle(quizzes); // ...  mezclamos el array con todas las preguntas ...
+		playLoop(rl, quizzes, 0); // ... invocacion de función principal del juego - Ojo a como está hecho.
+	})
+	.catch(error => { // ... otros errores posibles ...
+		errorlog(error.message);
+	})
+	.then(() => {
+		rl.prompt();
+	});
 };
 
 

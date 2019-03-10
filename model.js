@@ -34,10 +34,10 @@ sequelize.sync()
 			{ question: 'Capital de España',	answer: 'Madrid' },
 			{ question: 'Capital de Portugal',	answer: 'Lisboa' }
 		  ])
-		  .then( c => log(`  DB created with ${c.length} elems`))
-		)
+		  // .then( c => log(`  DB created with ${c.length} elems`)) // Comentada para que no salgan mensajes de la BDD
+		);
 	  } else { // .. si ya estaban creadas se muestra
-		log(`  DB exists & has ${count} elems`);
+		; // log(`  DB exists & has ${count} elems`); // Comentada para que no salgan mensajes de la BDD
 	  }
 	})
 	.catch( err => errorlog(`   ${err}`));
